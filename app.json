@@ -8,6 +8,12 @@
       "expo-router"
     ],
     "name": "matter-game-expo",
-    "slug": "matter-game-expo"
+    "slug": "matter-game-expo",
+    "android": {
+      "package": "com.anonymous.mattergameexpo"
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.mattergameexpo"
+    }
   }
 }
