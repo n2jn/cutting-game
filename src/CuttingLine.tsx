@@ -2,113 +2,62 @@ import {
   Canvas,
   Circle,
   Line,
+  Path,
   Rect,
   Skia,
   SkPoint,
-  vec,
+  processTransform3d,
+  usePathValue,
 } from '@shopify/react-native-skia';
 import { useState } from 'react';
 import { View } from 'react-native';
-import Matter from 'matter-js';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {
-  makeMutable,
-  runOnJS,
-  useSharedValue,
-} from 'react-native-reanimated';
-import { GameObjects } from './GameObjects';
-import { cutBox } from './lib/cutBox';
-import { PathsAnimated } from '../src/PathAnimated';
-import { PathCoords } from './GameObjects/Path.object';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { Entity, PathRenderData } from './core/Entity.types';
+
+/**
+ * Helper component for rendering animated Path with combined transforms
+ */
+const AnimatedPath = ({ renderData }: { renderData: PathRenderData }) => {
+  const clip = usePathValue((path) => {
+    'worklet';
+
+    path.transform(
+      processTransform3d([
+        {
+          translate: [renderData.x.value, renderData.y.value],
+        },
+      ])
+    );
+  }, renderData.path);
+
+  return (
+    <Path
+      path={clip}
+      color="red"
+      origin={renderData.origin}
+      transform={renderData.angle}
+      strokeWidth={4}
+      style="stroke"
+      strokeCap="round"
+      strokeJoin="round"
+    />
+  );
+};
 
 export const CuttingLine = ({
-  elements,
+  entities,
   onCut,
-  bodies,
 }: {
-  elements: GameObjects[];
-  bodies?: Matter.Body[];
-  onCut?: (elements: Matter.Body[], elementsCoords: GameObjects[]) => void;
+  entities: Entity[];
+  onCut?: (p1: SkPoint, p2: SkPoint) => void;
 }) => {
-  const boxes = elements
-    .map((e) => (e.type === 'box' ? e : null))
-    .filter((e) => !!e);
-  const balls = elements
-    .map((e) => (e.type === 'ball' ? e : null))
-    .filter((e) => !!e);
-
-  const paths = elements
-    .map((e) => (e.type === 'path' ? e : null))
-    .filter((e) => !!e);
-
-  const walls = elements
-    .map((e) => (e.type === 'wall' ? e : null))
-    .filter((e) => !!e);
-
   const p1 = useSharedValue<SkPoint | null>(null);
   const p2 = useSharedValue<SkPoint | null>(null);
   const [line, setLine] = useState<SkPoint[] | null>(null);
 
-  const addPath = (p1: SkPoint, p2: SkPoint) => {
-    const { newBodies, removedBodies } = cutBox(p1, p2);
-
-    if (!newBodies.length) {
-      return;
-    }
-
-    const newPaths: PathCoords[] = newBodies.map((body, index) => {
-      // Get vertices relative to body center
-      const vertices = body.vertices;
-      const centroid = Matter.Vertices.centre(vertices);
-
-      // Create Skia path from the body's vertices
-      const path = Skia.Path.Make();
-      if (vertices.length > 0) {
-        // Calculate relative vertices
-        const relativeVertices = vertices.map(v => ({
-          x: v.x - body.position.x + centroid.x,
-          y: v.y - body.position.y + centroid.y
-        }));
-
-        path.moveTo(relativeVertices[0].x, relativeVertices[0].y);
-        for (let i = 1; i < relativeVertices.length; i++) {
-          path.lineTo(relativeVertices[i].x, relativeVertices[i].y);
-        }
-        path.close();
-      }
-
-      const bounds = path.getBounds();
-      const timestamp = Date.now();
-
-      return {
-        id: `path-cut-${timestamp}-${index}`,
-        x: makeMutable(body.position.x - centroid.x),
-        y: makeMutable(body.position.y - centroid.y),
-        path: path,
-        origin: makeMutable(vec(centroid.x, centroid.y)),
-        angle: makeMutable([{ rotateZ: body.angle }]),
-        width: bounds.width,
-        height: bounds.height,
-        centroid: { x: centroid.x, y: centroid.y },
-        type: 'path',
-      };
-    });
-
-    console.log('Created paths:', newPaths.length);
-
-    // Filter out the removed bodies from elements
-    // Match removed bodies to elements by index in bodies array
-    const removedIndices = new Set<number>();
-    removedBodies.forEach(removedBody => {
-      const idx = bodies?.findIndex(b => b.id === removedBody.id);
-      if (idx !== undefined && idx >= 0) {
-        removedIndices.add(idx);
-      }
-    });
-
-    const filteredElements = elements.filter((_, index) => !removedIndices.has(index));
-
-    onCut?.(newBodies, [...filteredElements, ...newPaths]);
+  const handleCut = (p1: SkPoint, p2: SkPoint) => {
+    onCut?.(p1, p2);
   };
 
   /**
@@ -128,7 +77,7 @@ export const CuttingLine = ({
     })
     .onEnd((e) => {
       if (p1.value && p2.value) {
-        runOnJS(addPath)(p1.value, p2.value);
+        runOnJS(handleCut)(p1.value, p2.value);
 
         p2.value = null;
         p1.value = null;
@@ -151,47 +100,56 @@ export const CuttingLine = ({
                 strokeWidth={4}
               />
             )}
-            {/* {boxes.map((box, index) => {
-              return (
-                <Rect
-                  key={`box ${index}`}
-                  x={box.x}
-                  y={box.y}
-                  width={box.width}
-                  height={box.height}
-                  origin={box.origin}
-                  transform={box.angle}
-                  strokeWidth={3}
-                  color="purple"
-                />
-              );
-            })} */}
-            {balls.map((ball, index) => {
-              return (
-                <Circle
-                  key={`ball ${index}`}
-                  cx={ball.x}
-                  cy={ball.y}
-                  r={ball.radius}
-                  color="limegreen"
-                />
-              );
-            })}
-            {paths &&
-              paths.map((path, index) => (
-                <PathsAnimated key={`path ${index}`} pathCoords={path} />
-              ))}
-            {walls.map((wall, index) => {
-              return (
-                <Rect
-                  key={`wall ${index}`}
-                  x={wall.x}
-                  y={wall.y}
-                  width={wall.width}
-                  height={wall.height}
-                  color="gray"
-                />
-              );
+
+            {/* Render all entities */}
+            {entities.map((entity) => {
+              const { renderData } = entity;
+
+              switch (renderData.type) {
+                case 'ball':
+                  return (
+                    <Circle
+                      key={entity.id}
+                      cx={renderData.x}
+                      cy={renderData.y}
+                      r={renderData.radius}
+                      color="limegreen"
+                    />
+                  );
+
+                case 'path':
+                  return <AnimatedPath key={entity.id} renderData={renderData} />;
+
+                case 'wall':
+                  return (
+                    <Rect
+                      key={entity.id}
+                      x={renderData.x}
+                      y={renderData.y}
+                      width={renderData.width}
+                      height={renderData.height}
+                      color="gray"
+                    />
+                  );
+
+                case 'box':
+                  return (
+                    <Rect
+                      key={entity.id}
+                      x={renderData.x}
+                      y={renderData.y}
+                      width={renderData.width}
+                      height={renderData.height}
+                      origin={renderData.origin}
+                      transform={renderData.angle}
+                      color="purple"
+                      strokeWidth={3}
+                    />
+                  );
+
+                default:
+                  return null;
+              }
             })}
           </Canvas>
         </View>

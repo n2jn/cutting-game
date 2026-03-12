@@ -1,134 +1,90 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-
-import { vec } from '@shopify/react-native-skia';
 import Matter from 'matter-js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Ball } from '../src/Ball';
-import {
-  ball,
-  ballCoords,
-  bottomWallCoords,
-  BOX_SIZE,
-  engine,
-  GameObjects,
-  leftWallCoords,
-  rightWallCoords,
-  topWallCoords,
-  triangle,
-  triangle2,
-  triangleCoords,
-  triangleCoords2,
-} from '../src/GameObjects';
+import { engine, world, width, height } from '../src/GameObjects';
 import { CuttingLine } from '../src/CuttingLine';
+import { useEntityManager } from '../src/core/useEntityManager';
+import { EntityFactory } from '../src/core/EntityFactory';
+import { PhysicsSync } from '../src/systems/PhysicsSync';
+import { CuttingSystem } from '../src/systems/CuttingSystem';
 
 export default function App() {
-  const [elements, setElements] = useState<GameObjects[]>([
-    ballCoords,
-    //  boxCoords,
-   // triangleCoords,
-    triangleCoords2,
-    bottomWallCoords,
-    leftWallCoords,
-    rightWallCoords,
-    topWallCoords,
-  ]);
-  const boxesWorld = useRef([ball, triangle2]);
+  const { manager, entities } = useEntityManager(world);
+  const cuttingSystemRef = useRef<CuttingSystem | null>(null);
 
+  // Initialize cutting system
+  if (!cuttingSystemRef.current) {
+    cuttingSystemRef.current = new CuttingSystem(manager, world);
+  }
+
+  // Initialize game entities (runs once)
+  useEffect(() => {
+    // Create walls
+    const statusBarHeight = 20; // Fallback constant
+    manager.register(
+      EntityFactory.createWall(0, 0, 20, height)
+    ); // Left wall
+    manager.register(
+      EntityFactory.createWall(width - 20, 0, 20, height)
+    ); // Right wall
+    manager.register(
+      EntityFactory.createWall(0, 0, width, statusBarHeight)
+    ); // Top wall
+    manager.register(
+      EntityFactory.createWall(0, height - statusBarHeight, width, statusBarHeight)
+    ); // Bottom wall
+
+    // Create ball
+    manager.register(
+      EntityFactory.createBall(width * 0.15, height * 0.83, 20)
+    );
+
+    // Create star/triangle path
+    const starVerticesString = '128 0 168 80 256 93 192 155 207 244 128 202 49 244 64 155 0 93 88 80';
+    const starVertices = Matter.Vertices.fromPath(starVerticesString);
+    manager.register(
+      EntityFactory.createPath(width * 0.15, height * 0.5, starVertices)
+    );
+
+    // Cleanup on unmount
+    return () => {
+      // EntityManager handles cleanup
+    };
+  }, [manager]);
+
+  // Physics update loop (60fps)
   useEffect(() => {
     let animationFrame: any;
 
     const update = () => {
       Matter.Engine.update(engine, 1000 / 60);
+
+      // Sync all dynamic entities (balls, paths, boxes)
+      PhysicsSync.updateAll(manager.getDynamic());
+
       animationFrame = requestAnimationFrame(update);
-
-
-      let bodyIndex = 0;
-      elements.forEach((element) => {
-        // Skip walls - they're static and don't need updates
-        if (element.type === 'wall') return;
-
-        const body = boxesWorld.current[bodyIndex];
-        if (!body) return; // Skip if body doesn't exist
-
-        if (element.type === 'box') {
-          element.x.value = body.position.x;
-          element.y.value = body.position.y;
-          element.angle.value = [{ rotateZ: body.angle }];
-          element.origin.value = vec(
-            element.x.value + BOX_SIZE / 2,
-            element.y.value + BOX_SIZE / 2
-          );
-        } else if (element.type === 'ball') {
-          element.x.value = body.position.x;
-          element.y.value = body.position.y;
-        } else if (element.type === 'path') {
-          const centroidX = element.centroid?.x ?? element.width / 2;
-          const centroidY = element.centroid?.y ?? element.height / 2;
-          element.x.value = body.position.x - centroidX;
-          element.y.value = body.position.y - centroidY;
-          element.angle.value = [{ rotateZ: body.angle }];
-          element.origin.value = vec(
-            element.x.value + centroidX,
-            element.y.value + centroidY
-          );
-        }
-
-        bodyIndex++;
-      });
     };
 
     update();
 
     return () => cancelAnimationFrame(animationFrame);
-  }, [elements]);
+  }, [manager]);
 
   return (
     <GestureHandlerRootView>
       <View style={styles.container}>
-        {/* <Ball elements={elements} /> */}
         <CuttingLine
-          elements={elements}
-          bodies={boxesWorld.current}
-          onCut={(newBodies, elementsCoords) => {
-            console.log(elementsCoords.map((e) => e.id));
-
-            // Get all bodies that still exist in the world
-            const worldBodies = Matter.Composite.allBodies(engine.world);
-
-            // Filter out bodies that were removed during cutting
-            const remainingBodies = boxesWorld.current.filter(body => {
-              if (!body) return false;
-              const stillExists = worldBodies.includes(body);
-
-              // If body doesn't exist in world anymore, ensure it's removed
-              if (!stillExists) {
-                try {
-                  Matter.World.remove(engine.world, body, true);
-                } catch (e) {
-                  // Body already removed, ignore error
-                }
-              }
-
-              return stillExists;
-            });
-
-            // Update both bodies and elements
-            boxesWorld.current = [...remainingBodies, ...newBodies];
-            setElements(elementsCoords);
+          entities={entities}
+          onCut={(p1, p2) => {
+            // Use cutting system for clean entity lifecycle management
+            cuttingSystemRef.current?.cut(p1, p2);
           }}
         />
         <Pressable
-          style={{
-            width: '10%',
-            height: '10%',
-            backgroundColor: 'red',
-            position: 'absolute',
-          }}
+          style={styles.gravityButton}
           onPress={() => {
-            engine.gravity.y === 1
-              ? (engine.gravity.y = -1)
-              : (engine.gravity.y = 1);
+            engine.gravity.y = engine.gravity.y === 1 ? -1 : 1;
           }}
         />
       </View>
@@ -139,5 +95,11 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  gravityButton: {
+    width: '10%',
+    height: '10%',
+    backgroundColor: 'red',
+    position: 'absolute',
   },
 });
