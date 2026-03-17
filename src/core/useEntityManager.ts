@@ -21,6 +21,7 @@ export function useEntityManager(world: Matter.World) {
     const manager = managerRef.current!;
 
     const unsubscribe = manager.subscribe((entityMap) => {
+      console.log(Array.from(entityMap.values()))
       setEntities(Array.from(entityMap.values()));
     });
 

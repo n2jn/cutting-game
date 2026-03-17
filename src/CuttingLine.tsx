@@ -12,7 +12,9 @@ import {
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { runOnJS, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import Matter from 'matter-js';
 import { Entity, PathRenderData } from './core/Entity.types';
 
 /**
@@ -42,6 +44,70 @@ const AnimatedPath = ({ renderData }: { renderData: PathRenderData }) => {
       strokeCap="round"
       strokeJoin="round"
     />
+  );
+};
+
+/**
+ * Draggable ball component overlay
+ */
+const DraggableBall = ({ entity }: { entity: Entity }) => {
+  if (!entity.body || entity.renderData.type !== 'ball') return null;
+
+  const renderData = entity.renderData;
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+
+  const updateBallVelocity = (x: number, y: number) => {
+    if (entity.body) {
+      Matter.Body.setVelocity(entity.body, { x, y });
+    }
+  };
+
+  const updateBallPosition = (x: number, y: number) => {
+    if (entity.body) {
+      Matter.Body.setPosition(entity.body, { x, y });
+    }
+  };
+
+  const updateSleep = (sleep: boolean) => {
+    if (entity.body) {
+      Matter.Sleeping.set(entity.body, sleep);
+    }
+  };
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      startX.value = renderData.x.value;
+      startY.value = renderData.y.value;
+      runOnJS(updateBallVelocity)(0, 0);
+      runOnJS(updateSleep)(true);
+    })
+    .onChange((e) => {
+      const newX = startX.value + e.translationX;
+      const newY = startY.value + e.translationY;
+      runOnJS(updateBallPosition)(newX, newY);
+    })
+    .onEnd((e) => {
+      runOnJS(updateSleep)(false);
+      runOnJS(updateBallVelocity)(e.velocityX * 0.01, e.velocityY * 0.01);
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    top: -renderData.radius,
+    left: -renderData.radius,
+    width: renderData.radius * 2,
+    height: renderData.radius * 2,
+    transform: [
+      { translateX: renderData.x.value },
+      { translateY: renderData.y.value },
+    ],
+  }));
+
+  return (
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={animatedStyle} />
+    </GestureDetector>
   );
 };
 
@@ -84,6 +150,9 @@ export const CuttingLine = ({
         runOnJS(setLine)(null);
       }
     });
+
+  // Find ball entity for draggable overlay
+  const ballEntity = entities.find((e) => e.type === 'ball');
 
   return (
     <>
@@ -154,6 +223,9 @@ export const CuttingLine = ({
           </Canvas>
         </View>
       </GestureDetector>
+
+      {/* Draggable ball overlay */}
+      {ballEntity && <DraggableBall entity={ballEntity} />}
     </>
   );
 };

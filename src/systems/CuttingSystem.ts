@@ -3,7 +3,7 @@ import Matter from 'matter-js';
 import { Entity } from '../core/Entity.types';
 import { EntityFactory } from '../core/EntityFactory';
 import { EntityManager } from '../core/EntityManager';
-import { cutBox } from '../lib/cutBox';
+import { cutBox } from '../utils/cutBox';
 
 export interface CutResult {
   removedIds: string[];
@@ -28,35 +28,38 @@ export class CuttingSystem {
    * Returns IDs of removed entities and newly created entities
    */
   cut(p1: SkPoint, p2: SkPoint): CutResult {
-    // Use existing cutting logic
-    const { newBodies, removedBodies } = cutBox(p1, p2);
-
     const removedIds: string[] = [];
     const newEntities: Entity[] = [];
+    let sourceEntity: Entity | undefined;
 
-    // Find entities that were cut by matching body IDs
+    // Use existing cutting logic - pass world
+    const { newBodies, removedBodies } = cutBox(p1, p2, this.world);
+
+    // Find and remove entities that were cut
     removedBodies.forEach((removedBody) => {
       const entity = this.manager.findByBodyId(removedBody.id);
       if (entity) {
         removedIds.push(entity.id);
-
-        // Create new entities from cut pieces
-        newBodies.forEach((newBody) => {
-          const newEntity = EntityFactory.createPathFromBody(
-            newBody,
-            entity.id,
-            entity.metadata?.generation
-          );
-          newEntities.push(newEntity);
-        });
-
-        // Remove old entity
+        // Store reference to source entity before removing
+        if (!sourceEntity) {
+          sourceEntity = entity;
+        }
+        // Remove old entity (triggers state update)
         this.manager.remove(entity.id);
       }
     });
 
-    // Register new entities
-    newEntities.forEach((entity) => this.manager.register(entity));
+    // Create new entities from cut pieces
+    newBodies.forEach((newBody) => {
+      const newEntity = EntityFactory.createPathFromBody(
+        newBody,
+        sourceEntity?.id,
+        sourceEntity?.metadata?.generation
+      );
+      newEntities.push(newEntity);
+      // Register new entity (triggers state update)
+      this.manager.register(newEntity);
+    });
 
     return { removedIds, newEntities };
   }

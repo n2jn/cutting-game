@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Matter from 'matter-js';
 import { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { engine, world, width, height } from '../src/GameObjects';
+import { engine, world, width, height } from '../src/core/physics';
 import { CuttingLine } from '../src/CuttingLine';
 import { useEntityManager } from '../src/core/useEntityManager';
 import { EntityFactory } from '../src/core/EntityFactory';
@@ -40,12 +40,29 @@ export default function App() {
       EntityFactory.createBall(width * 0.15, height * 0.83, 20)
     );
 
-    // Create star/triangle path
-    const starVerticesString = '128 0 168 80 256 93 192 155 207 244 128 202 49 244 64 155 0 93 88 80';
-    const starVertices = Matter.Vertices.fromPath(starVerticesString);
     manager.register(
-      EntityFactory.createPath(width * 0.15, height * 0.5, starVertices)
+      EntityFactory.createBall(width * 0.15, height * 0.83, 20)
     );
+
+    manager.register(
+      EntityFactory.createBox(width * 0.15, height * 0.83, 20, 20)
+    );
+    manager.register(
+      EntityFactory.createBox(width * 0.15, height * 0.83, 200, 200)
+    );
+    manager.register(
+      EntityFactory.createBox(width * 0.15, height * 0.83, 20, 20)
+    );
+    manager.register(
+      EntityFactory.createBox(width * 0.15, height * 0.83, 20, 20)
+    );
+
+    // Create star/triangle path
+    // const starVerticesString = '128 0 168 80 256 93 192 155 207 244 128 202 49 244 64 155 0 93 88 80';
+    // const starVertices = Matter.Svg.pathToVertices(starVerticesString);
+    // manager.register(
+    //   EntityFactory.createPath(width * 0.15, height * 0.5, starVertices)
+    // );
 
     // Cleanup on unmount
     return () => {

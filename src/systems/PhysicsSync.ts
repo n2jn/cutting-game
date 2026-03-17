@@ -52,13 +52,13 @@ export class PhysicsSync {
     body: Matter.Body,
     renderData: BoxRenderData
   ): void {
-    renderData.x.value = body.position.x;
-    renderData.y.value = body.position.y;
+    // body.position is at the centroid
+    // Boxes render from top-left, so offset by half width/height
+    renderData.x.value = body.position.x - renderData.width / 2;
+    renderData.y.value = body.position.y - renderData.height / 2;
     renderData.angle.value = [{ rotateZ: body.angle }];
-    renderData.origin.value = {
-      x: renderData.x.value + renderData.width / 2,
-      y: renderData.y.value + renderData.height / 2,
-    };
+    // Rotation origin should be at the centroid (center of the box)
+    renderData.origin.value = vec(body.position.x, body.position.y);
   }
 
   private static updatePath(
@@ -69,13 +69,8 @@ export class PhysicsSync {
 
     // If centroid is (0, 0), path is already centered (from cut operation)
     // Otherwise, path uses offset positioning (from initial creation)
-    if (centroid.x === 0 && centroid.y === 0) {
-      renderData.x.value = body.position.x;
-      renderData.y.value = body.position.y;
-    } else {
-      renderData.x.value = body.position.x - centroid.x;
-      renderData.y.value = body.position.y - centroid.y;
-    }
+    renderData.x.value = body.position.x - centroid.x;
+    renderData.y.value = body.position.y - centroid.y;
 
     renderData.angle.value = [{ rotateZ: body.angle }];
     renderData.origin.value = vec(

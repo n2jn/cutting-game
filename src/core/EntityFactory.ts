@@ -69,18 +69,20 @@ export class EntityFactory {
     height: number,
     options?: Partial<Matter.IBodyDefinition>
   ): Entity {
+    // Matter.Bodies.rectangle expects center position (x, y)
     const body = Matter.Bodies.rectangle(x, y, width, height, {
       density: 0.004,
       restitution: 0.9,
       ...options,
     });
 
+    // Render data: body.position is at center, render from top-left
     const renderData: BoxRenderData = {
       type: 'box',
-      x: makeMutable(x),
-      y: makeMutable(y),
+      x: makeMutable(x - width / 2),
+      y: makeMutable(y - height / 2),
       angle: makeMutable([{ rotateZ: 0 }]),
-      origin: makeMutable(vec(x + width / 2, y + height / 2)),
+      origin: makeMutable(vec(x, y)), // Rotation origin at center
       width,
       height,
     };
