@@ -7,6 +7,7 @@ import {
   BoxRenderData,
   BallRenderData,
   WallRenderData,
+  DuckRenderData,
 } from './Entity.types';
 import {
   calculateCentroid,
@@ -178,6 +179,37 @@ export class EntityFactory {
       body,
       renderData,
       metadata: { isCuttable: false },
+    };
+  }
+
+  /**
+   * Create duck entity (static sensor for collision detection)
+   */
+  static createDuck(
+    x: number,
+    y: number,
+    radius: number,
+    rarityColor: string
+  ): Entity {
+    const body = Matter.Bodies.circle(x, y, radius, {
+      isStatic: true,
+      isSensor: true, // Allows collisions but doesn't affect physics
+    });
+
+    const renderData: DuckRenderData = {
+      type: 'duck',
+      x: makeMutable(x),
+      y: makeMutable(y),
+      radius,
+      rarityColor,
+    };
+
+    return {
+      id: 'duck', // Fixed ID for easy lookup
+      type: 'duck',
+      body,
+      renderData,
+      metadata: { isCuttable: false, isDuck: true },
     };
   }
 

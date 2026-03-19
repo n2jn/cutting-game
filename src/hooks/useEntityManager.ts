@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Matter from 'matter-js';
-import { EntityManager } from './EntityManager';
-import { Entity } from './Entity.types';
+import { EntityManager } from '../systems/EntityManager';
+import { Entity } from '../systems/Entity.types';
 
 /**
  * React hook for entity manager

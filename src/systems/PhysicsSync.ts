@@ -4,7 +4,8 @@ import {
   BallRenderData,
   BoxRenderData,
   PathRenderData,
-} from '../core/Entity.types';
+  DuckRenderData,
+} from './Entity.types';
 
 /**
  * Synchronize physics body positions to render data
@@ -28,6 +29,9 @@ export class PhysicsSync {
         break;
       case 'path':
         this.updatePath(body, renderData);
+        break;
+      case 'duck':
+        this.updateDuck(body, renderData);
         break;
       // Walls are static, no update needed
     }
@@ -74,8 +78,16 @@ export class PhysicsSync {
 
     renderData.angle.value = [{ rotateZ: body.angle }];
     renderData.origin.value = vec(
-      body.position.x + centroid.x, 
+      body.position.x + centroid.x,
       body.position.y + centroid.y,
     );
+  }
+
+  private static updateDuck(
+    body: Matter.Body,
+    renderData: DuckRenderData
+  ): void {
+    renderData.x.value = body.position.x;
+    renderData.y.value = body.position.y;
   }
 }

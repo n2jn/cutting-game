@@ -7,7 +7,7 @@ import Matter from 'matter-js';
  */
 export interface Entity {
   id: string;
-  type: 'ball' | 'box' | 'path' | 'wall';
+  type: 'ball' | 'box' | 'path' | 'wall' | 'duck';
   body: Matter.Body | null; // null for static walls
   renderData: RenderData;
   metadata?: EntityMetadata;
@@ -20,7 +20,8 @@ export type RenderData =
   | BallRenderData
   | BoxRenderData
   | PathRenderData
-  | WallRenderData;
+  | WallRenderData
+  | DuckRenderData;
 
 export interface BallRenderData {
   type: 'ball';
@@ -59,6 +60,14 @@ export interface WallRenderData {
   height: number;
 }
 
+export interface DuckRenderData {
+  type: 'duck';
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  radius: number;
+  rarityColor: string;
+}
+
 /**
  * Optional metadata for entity behavior
  */
@@ -67,4 +76,7 @@ export interface EntityMetadata {
   createdAt?: number;
   parentId?: string; // For tracking cut pieces
   generation?: number; // How many times cut from original
+  isDuck?: boolean; // Marks this as the player's duck
+  isObstacle?: boolean; // Marks this as an obstacle for runner games
+  scored?: boolean; // Whether this obstacle has been scored
 }

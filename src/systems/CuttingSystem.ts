@@ -1,8 +1,8 @@
 import { SkPoint } from '@shopify/react-native-skia';
 import Matter from 'matter-js';
-import { Entity } from '../core/Entity.types';
-import { EntityFactory } from '../core/EntityFactory';
-import { EntityManager } from '../core/EntityManager';
+import { Entity } from './Entity.types';
+import { EntityFactory } from './EntityFactory';
+import { EntityManager } from './EntityManager';
 import { cutBox } from '../utils/cutBox';
 
 export interface CutResult {

@@ -15,7 +15,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
 import Matter from 'matter-js';
-import { Entity, PathRenderData } from './core/Entity.types';
+import { Entity, PathRenderData } from './systems/Entity.types';
 
 /**
  * Helper component for rendering animated Path with combined transforms
@@ -93,15 +93,15 @@ const DraggableBall = ({ entity }: { entity: Entity }) => {
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
+    position: 'absolute' as const,
     top: -renderData.radius,
     left: -renderData.radius,
     width: renderData.radius * 2,
     height: renderData.radius * 2,
     transform: [
-      { translateX: renderData.x.value },
-      { translateY: renderData.y.value },
-    ],
+      { translateX: renderData.x.value as number },
+      { translateY: renderData.y.value as number },
+    ] as any,
   }));
 
   return (
@@ -213,6 +213,18 @@ export const CuttingLine = ({
                       transform={renderData.angle}
                       color="purple"
                       strokeWidth={3}
+                    />
+                  );
+
+                case 'duck':
+                  return (
+                    <Circle
+                      key={entity.id}
+                      cx={renderData.x}
+                      cy={renderData.y}
+                      r={renderData.radius}
+                      color={renderData.rarityColor}
+                      opacity={0.3}
                     />
                   );
 
