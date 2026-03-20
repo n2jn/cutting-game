@@ -1,8 +1,8 @@
 import { StyleSheet, View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useGameState } from '../../src/hooks';
-import { DuckSelector } from '../../src/components/DuckSelector';
-import { StatType } from '../../src/types/game';
+import { useGameState } from '@hooks';
+import { DuckSelector } from '@components/game/DuckSelector';
+import type { StatType } from '@game';
 
 interface Game {
   id: string;

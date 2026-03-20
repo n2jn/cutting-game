@@ -1,4 +1,17 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@engine": ["src/engine/index.ts"],
+      "@engine/*": ["src/engine/*"],
+      "@physics": ["src/engine/index.ts"],
+      "@physics/*": ["src/engine/*"],
+      "@game": ["src/game/index.ts"],
+      "@game/*": ["src/game/*"],
+      "@components/*": ["src/components/*"],
+      "@hooks": ["src/hooks/index.ts"],
+      "@hooks/*": ["src/hooks/*"]
+    }
+  },
   "extends": "expo/tsconfig.base"
 }

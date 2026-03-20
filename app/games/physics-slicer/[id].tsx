@@ -1,17 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { CuttingLine } from '../../../src/CuttingLine';
-import { EntityFactory } from '../../../src/systems/EntityFactory';
-import { CuttingSystem } from '../../../src/systems/CuttingSystem';
-import { GameContainer } from '../../../src/components/GameContainer';
-import { DuckDisplay } from '../../../src/components/DuckDisplay';
+import { CuttingLine } from '@components/physics/CuttingLine';
+import { EngineFacade, Line as CutLine } from '@engine';
+import { GameContainer } from '@components/game/GameContainer';
+import { DuckDisplay } from '@components/game/DuckDisplay';
 import {
   useHeartSystem,
   useScoreSystem,
   useGameSetup,
   useDuckCollision,
   usePhysicsLoop,
-} from '../../../src/hooks';
+} from '@hooks';
 
 /**
  * Physics Slicer Game - Dynamic Level Component
@@ -31,7 +30,7 @@ export default function PhysicsSlicerLevel() {
   const levelId = parseInt(id || '1', 10);
 
   // Game setup (entities, duck, walls)
-  const { entityManager, entities, gameManager, selectedDuck, duckEntity, width, height, world, engine } =
+  const { entityManager, entities, gameManager, selectedDuck, duckEntity, width, height } =
     useGameSetup();
 
   // Game systems
@@ -39,25 +38,18 @@ export default function PhysicsSlicerLevel() {
   const { score, xpGained, addScore, incrementTotalObjects, calculateAndAwardXP, reset: resetScore } =
     useScoreSystem();
 
-  const cuttingSystemRef = useRef<CuttingSystem | null>(null);
-
-  // Initialize cutting system
-  if (!cuttingSystemRef.current) {
-    cuttingSystemRef.current = new CuttingSystem(entityManager, world);
-  }
-
   // Duck collision handling
   const handleDuckHit = () => {
-    const gameOver = loseHeart();
-    if (gameOver) {
-      calculateAndAwardXP(gameManager, selectedDuck, 'fighting');
-    }
+    // const gameOver = loseHeart();
+    // if (gameOver) {
+    //   calculateAndAwardXP(gameManager, selectedDuck, 'fighting');
+    // }
   };
 
-  useDuckCollision(engine, entityManager, handleDuckHit);
+  useDuckCollision(entityManager, handleDuckHit);
 
   // Physics loop
-  usePhysicsLoop(engine, entityManager);
+  usePhysicsLoop();
 
   // Spawn objects periodically
   useEffect(() => {
@@ -70,10 +62,21 @@ export default function PhysicsSlicerLevel() {
       // Random object type
       const objectType = Math.random();
       if (objectType < 0.5) {
-        entityManager.register(EntityFactory.createBall(randomX, randomY, 20 + Math.random() * 20));
+        const ball = EngineFacade.creator.createBall(
+          { x: randomX, y: randomY },
+          20 + Math.random() * 20,
+          { isCuttable: true }
+        );
+        entityManager.register(ball);
       } else {
         const size = 30 + Math.random() * 30;
-        entityManager.register(EntityFactory.createBox(randomX, randomY, size, size));
+        const box = EngineFacade.creator.createBox(
+          { x: randomX, y: randomY },
+          size,
+          size,
+          { isCuttable: true }
+        );
+        entityManager.register(box);
       }
 
       incrementTotalObjects();
@@ -96,18 +99,18 @@ export default function PhysicsSlicerLevel() {
       const dynamicEntities = entityManager.getDynamic();
 
       dynamicEntities.forEach((entity) => {
-        const body = entity.body;
+        const body = entity.physicsBody;
 
         // Check if object fell off bottom of screen
-        if (body.position.y > height + 100) {
+        if (body && body.position.y > height + 100) {
           // Remove entity
           entityManager.remove(entity.id);
 
           // Lose a heart
-          const gameOver = loseHeart();
-          if (gameOver) {
-            calculateAndAwardXP(gameManager, selectedDuck, 'fighting');
-          }
+          // const gameOver = loseHeart();
+          // if (gameOver) {
+          //   calculateAndAwardXP(gameManager, selectedDuck, 'fighting');
+          // }
         }
       });
     }, 100);
@@ -119,10 +122,16 @@ export default function PhysicsSlicerLevel() {
   const handleCut = (p1: any, p2: any) => {
     if (isGameOver) return;
 
-    const result = cuttingSystemRef.current?.cut(p1, p2);
+    // Convert SkPoints to domain Line type
+    const line: CutLine = {
+      start: { x: p1.x, y: p1.y },
+      end: { x: p2.x, y: p2.y },
+    };
+
+    const result = EngineFacade.cutting.execute(line);
 
     // If we successfully cut something, add to score
-    if (result && result.newEntities.length > 0) {
+    if (result.newEntities.length > 0) {
       addScore(result.newEntities.length);
     }
   };

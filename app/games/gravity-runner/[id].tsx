@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { GameContainer } from '../../../src/components/GameContainer';
-import { DuckDisplay } from '../../../src/components/DuckDisplay';
+import { GameContainer } from '@components/game/GameContainer';
+import { DuckDisplay } from '@components/game/DuckDisplay';
 import {
   useHeartSystem,
   useScoreSystem,
   useGameSetup,
-} from '../../../src/hooks';
+} from '@hooks';
+import { Character } from '@components/character-rive/Character';
 
 const MAX_HEARTS = 3;
 
@@ -43,6 +44,7 @@ export default function GravityRunnerLevel() {
       <View style={styles.gameArea}>
         {/* Duck Display */}
         <DuckDisplay duckEntity={duckEntity} />
+        <Character characterEntity={duckEntity}/>
       </View>
     </GameContainer>
   );

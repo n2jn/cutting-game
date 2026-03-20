@@ -2,15 +2,16 @@
  * Centralized hooks exports
  */
 
-// Core hooks
-export { useEntityManager } from './useEntityManager';
-export { useGameState, useAutoClicker } from './useGameState';
+// Physics hooks
+export { useEntityManager } from './physics/useEntityManager';
+export { usePhysicsLoop } from './physics/usePhysicsLoop';
 
-// Game system hooks
-export { useHeartSystem } from './useHeartSystem';
-export { useScoreSystem } from './useScoreSystem';
-export { useGameSetup } from './useGameSetup';
-export { useDuckCollision } from './useDuckCollision';
-export { usePhysicsLoop } from './usePhysicsLoop';
-export { useJumpSystem } from './useJumpSystem';
-export { useObstacleSpawn } from './useObstacleSpawn';
+// Renderer hooks
+export { useReactiveVector } from './renderer/useReactiveVector';
+
+// Game hooks
+export { useGameState, useAutoClicker } from './game/useGameState';
+export { useHeartSystem } from './game/useHeartSystem';
+export { useScoreSystem } from './game/useScoreSystem';
+export { useGameSetup } from './game/useGameSetup';
+export { useDuckCollision } from './game/useDuckCollision';

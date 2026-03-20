@@ -1,8 +1,8 @@
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
-import { useGameState, useAutoClicker } from '../../src/hooks';
-import { EggClicker } from '../../src/components/EggClicker';
-import { StatBar } from '../../src/components/StatBar';
-import { RARITY_COLORS } from '../../src/types/game';
+import { useGameState, useAutoClicker } from '@hooks';
+import { EggClicker } from '@components/game/EggClicker';
+import { StatBar } from '@components/ui/StatBar';
+import { RARITY_COLORS } from '@game';
 
 /**
  * Home Tab - Duck Clicker Game

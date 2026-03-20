@@ -5,7 +5,15 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./public/character_set_piece.riv"
+          ]
+        }
+      ]
     ],
     "name": "matter-game-expo",
     "slug": "matter-game-expo",
